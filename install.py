@@ -23,6 +23,37 @@ DB_CONFIG = {{
     with open(os.path.join(project_root, "config.py"), "w") as config_file:
         config_file.write(config_content)
 
+def setup_nginx(domain):
+    nginx_config = f"""
+server {{
+    listen 80;
+    server_name {domain};
+
+    location / {{
+        proxy_pass http://127.0.0.1:5000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }}
+}}
+"""
+    config_path = f"/etc/nginx/sites-available/{domain}"
+    enabled_path = f"/etc/nginx/sites-enabled/{domain}"
+
+    # ایجاد فایل پیکربندی Nginx
+    with open(config_path, "w") as nginx_file:
+        nginx_file.write(nginx_config)
+
+    # ایجاد لینک سمبلیک برای فعال‌سازی سایت
+    if os.path.exists(enabled_path):
+        os.remove(enabled_path)
+    os.symlink(config_path, enabled_path)
+
+    # تست و ری‌لود Nginx
+    subprocess.run(["nginx", "-t"])
+    subprocess.run(["systemctl", "reload", "nginx"])
+
 def install():
     print("Starting NovinGate Bot Installation...")
 
@@ -42,16 +73,23 @@ def install():
     print("Installing required packages...")
     subprocess.run(["pip3", "install", "-r", "requirements.txt"])
 
+    # تنظیم Nginx
+    print("Setting up Nginx...")
+    setup_nginx(domain)
+
     # تنظیم SSL
     print("Setting up SSL...")
-    from utils.ssl_manager import setup_ssl, renew_ssl
-    setup_ssl(domain)
-    renew_ssl(domain)
+    subprocess.run(["sudo", "certbot", "--nginx", "-d", domain, "--non-interactive", "--agree-tos", "--email", "your-email@example.com"])
 
     # ایجاد دیتابیس و جداول
     print("Initializing database...")
     from database.db_init import initialize_database
-    initialize_database(db_name, db_user, db_password)
+    try:
+        initialize_database(db_name, db_user, db_password)
+    except mysql.connector.Error as err:
+        print(f"Error initializing database: {err}")
+        print("Please check your database username and password.")
+        return
 
     # تنظیم وب‌هوک
     print("Setting webhook...")
