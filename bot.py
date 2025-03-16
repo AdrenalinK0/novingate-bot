@@ -1,53 +1,30 @@
 from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters
-from config import TOKEN, ADMIN_ID
-from utils.keyboard_utils import user_main_menu_keyboard, admin_main_menu_keyboard
+from telegram.ext import Updater, CommandHandler, CallbackContext
+from config import BOT_TOKEN, ADMIN_ID
+from modules.admin import admin_panel
+from modules.user import user_panel
+import logging
 
-async def start(update: Update, context):
+# تنظیمات لاگ
+logging.basicConfig(filename='logs/bot.log', level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+def start(update: Update, context: CallbackContext):
     user_id = update.message.from_user.id
-    if user_id == ADMIN_ID:
-        await update.message.reply_text(
-            'سلام! به پنل ادمین خوش آمدید. لطفاً یکی از گزینه‌های زیر را انتخاب کنید:',
-            reply_markup=admin_main_menu_keyboard()
-        )
+    if str(user_id) == ADMIN_ID:
+        admin_panel(update, context)
     else:
-        await update.message.reply_text(
-            'سلام! به ربات novingate خوش آمدید. لطفاً یکی از گزینه‌های زیر را انتخاب کنید:',
-            reply_markup=user_main_menu_keyboard()
-        )
-
-async def handle_message(update: Update, context):
-    text = update.message.text
-    if text == '💰 شارژ کیف پول':
-        await update.message.reply_text('لطفاً مبلغ مورد نظر را وارد کنید:')
-    elif text == '🆕 ساخت اکانت جدید':
-        await update.message.reply_text('لطفاً پلن مورد نظر را انتخاب کنید:')
-    elif text == '📋 مشاهده اکانت‌ها':
-        await update.message.reply_text('لیست اکانت‌های شما:')
-    elif text == '📨 ارسال تیکت':
-        await update.message.reply_text('لطفاً مشکل یا سوال خود را ارسال کنید:')
-    elif text == '📬 مشاهده تیکت‌ها':
-        await update.message.reply_text('لیست تیکت‌های شما:')
-    elif text == '💳 کیف پول':
-        await update.message.reply_text('موجودی کیف پول شما:')
-    elif text == '👥 زیرمجموعه‌گیری':
-        await update.message.reply_text('لینک زیرمجموعه‌گیری شما:')
-    elif text == '📚 آموزش‌ها':
-        await update.message.reply_text('لیست آموزش‌ها:')
-    else:
-        await update.message.reply_text('دستور نامعتبر است.')
+        user_panel(update, context)
 
 def main():
-    application = Application.builder().token(TOKEN).build()
+    updater = Updater(BOT_TOKEN)
+    dispatcher = updater.dispatcher
 
-    # ثبت دستورات
-    application.add_handler(CommandHandler("start", start))
-
-    # پردازش پیام‌های متنی
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    # دستورات
+    dispatcher.add_handler(CommandHandler("start", start))
 
     # شروع ربات
-    application.run_polling()
+    updater.start_polling()
+    updater.idle()
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

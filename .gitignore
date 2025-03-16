@@ -1,18 +1,65 @@
+
+---
+
+#### فایل `.gitignore`
+```gitignore
 # فایل‌های پایتون
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
 
-# فایل‌های لاگ
+# محیط‌های مجازی
+venv/
+env/
+.venv/
+.env/
+
+# فایل‌های مخفی
+.DS_Store
+.idea/
+.vscode/
+
+# لاگ‌ها
 logs/
+*.log
 
-# فایل‌های تنظیمات
+# فایل‌های تنظیمات محلی
 config.py
+*.env
+*.ini
+
+# دیتابیس
+*.db
+*.sqlite3
 
 # فایل‌های نصب
-venv/
-.env
+dist/
+build/
+*.egg-info/
+
+# فایل‌های کش
+.cache/
+.pytest_cache/
 
 # فایل‌های سیستم
-.DS_Store
+*.swp
+*.swo
+*.bak
+*.tmp
+
+# فایل‌های SSL
+*.key
+*.pem
+*.crt
+
+# فایل‌های phpMyAdmin
+phpmyadmin/
+
+# فایل‌های تولید شده توسط کاربر
+uploads/
+downloads/
+
+# فایل‌های IDE
+*.iml
+*.project
+*.pydevproject
