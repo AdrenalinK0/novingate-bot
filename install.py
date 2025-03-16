@@ -1,6 +1,11 @@
+import sys
 import os
 import subprocess
 import mysql.connector
+
+# اضافه کردن مسیر پروژه به sys.path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from utils.ssl_manager import setup_ssl, renew_ssl
 from database.db_init import initialize_database
 

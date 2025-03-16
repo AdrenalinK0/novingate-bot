@@ -1,4 +1,10 @@
+import sys
+import os
 import mysql.connector
+
+# اضافه کردن مسیر پروژه به sys.path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from config import DB_CONFIG
 
 def initialize_database(db_name, db_user, db_password):
