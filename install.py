@@ -59,11 +59,12 @@ def install():
 
     # ایجاد محیط مجازی
     print("Creating virtual environment...")
-    subprocess.run(["python3", "-m", "venv", "venv"])
-    activate_script = os.path.join(project_root, "venv", "bin", "activate")
+    venv_path = os.path.join(project_root, "venv")
+    subprocess.run(["python3", "-m", "venv", venv_path], check=True)
 
     # فعال‌سازی محیط مجازی
     print("Activating virtual environment...")
+    activate_script = os.path.join(venv_path, "bin", "activate")
     activate_command = f"source {activate_script}"
     subprocess.run(activate_command, shell=True, executable="/bin/bash")
 
@@ -81,7 +82,8 @@ def install():
 
     # نصب پکیج‌های مورد نیاز
     print("Installing required packages...")
-    subprocess.run([os.path.join(project_root, "venv", "bin", "pip"), "install", "-r", "requirements.txt"])
+    pip_path = os.path.join(venv_path, "bin", "pip")
+    subprocess.run([pip_path, "install", "-r", "requirements.txt"], check=True)
 
     # تنظیم Nginx
     print("Setting up Nginx...")
@@ -89,7 +91,7 @@ def install():
 
     # تنظیم SSL
     print("Setting up SSL...")
-    subprocess.run(["sudo", "certbot", "--nginx", "-d", domain, "--non-interactive", "--agree-tos", "--email", "your-email@example.com"])
+    subprocess.run(["sudo", "certbot", "--nginx", "-d", domain, "--non-interactive", "--agree-tos", "--email", "your-email@example.com"], check=True)
 
     # ایجاد دیتابیس و جداول
     print("Initializing database...")
@@ -103,15 +105,16 @@ def install():
 
     # تنظیم وب‌هوک
     print("Setting webhook...")
-    subprocess.run([os.path.join(project_root, "venv", "bin", "python"), "bot.py", "--set-webhook", domain])
+    python_path = os.path.join(venv_path, "bin", "python")
+    subprocess.run([python_path, "bot.py", "--set-webhook", domain], check=True)
 
     # نصب phpMyAdmin
     print("Installing phpMyAdmin...")
-    subprocess.run(["sudo", "apt-get", "install", "phpmyadmin", "-y"])
+    subprocess.run(["sudo", "apt-get", "install", "phpmyadmin", "-y"], check=True)
 
     # اجرای ربات
     print("Starting the bot...")
-    subprocess.run([os.path.join(project_root, "venv", "bin", "python"), "bot.py"])
+    subprocess.run([python_path, "bot.py"], check=True)
 
     print("Installation completed successfully!")
     print(f"Admin Panel: http://{domain}/admin")
