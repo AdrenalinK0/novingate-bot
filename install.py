@@ -4,10 +4,24 @@ import subprocess
 import mysql.connector
 
 # اضافه کردن مسیر پروژه به sys.path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+project_root = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(project_root)
 
-from utils.ssl_manager import setup_ssl, renew_ssl
-from database.db_init import initialize_database
+def create_config_file(bot_token, admin_id, db_name, db_user, db_password):
+    config_content = f"""
+BOT_TOKEN = '{bot_token}'
+ADMIN_ID = '{admin_id}'
+
+# تنظیمات دیتابیس
+DB_CONFIG = {{
+    'host': 'localhost',
+    'user': '{db_user}',
+    'password': '{db_password}',
+    'database': '{db_name}'
+}}
+"""
+    with open(os.path.join(project_root, "config.py"), "w") as config_file:
+        config_file.write(config_content)
 
 def install():
     print("Starting NovinGate Bot Installation...")
@@ -21,15 +35,8 @@ def install():
     domain = input("Enter your domain (e.g., example.com): ")
 
     # ایجاد فایل config.py
-    with open("config.py", "w") as config_file:
-        config_file.write(f"BOT_TOKEN = '{bot_token}'\n")
-        config_file.write(f"ADMIN_ID = '{admin_id}'\n")
-        config_file.write("DB_CONFIG = {\n")
-        config_file.write(f"    'host': 'localhost',\n")
-        config_file.write(f"    'user': '{db_user}',\n")
-        config_file.write(f"    'password': '{db_password}',\n")
-        config_file.write(f"    'database': '{db_name}'\n")
-        config_file.write("}\n")
+    print("Creating config.py...")
+    create_config_file(bot_token, admin_id, db_name, db_user, db_password)
 
     # نصب پکیج‌های مورد نیاز
     print("Installing required packages...")
@@ -37,11 +44,13 @@ def install():
 
     # تنظیم SSL
     print("Setting up SSL...")
+    from utils.ssl_manager import setup_ssl, renew_ssl
     setup_ssl(domain)
     renew_ssl(domain)
 
     # ایجاد دیتابیس و جداول
     print("Initializing database...")
+    from database.db_init import initialize_database
     initialize_database(db_name, db_user, db_password)
 
     # تنظیم وب‌هوک
