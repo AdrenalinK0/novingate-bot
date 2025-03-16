@@ -20,6 +20,17 @@ def install():
     db_password = input("Enter Database Password: ")
     domain = input("Enter your domain (e.g., example.com): ")
 
+    # ایجاد فایل config.py
+    with open("config.py", "w") as config_file:
+        config_file.write(f"BOT_TOKEN = '{bot_token}'\n")
+        config_file.write(f"ADMIN_ID = '{admin_id}'\n")
+        config_file.write("DB_CONFIG = {\n")
+        config_file.write(f"    'host': 'localhost',\n")
+        config_file.write(f"    'user': '{db_user}',\n")
+        config_file.write(f"    'password': '{db_password}',\n")
+        config_file.write(f"    'database': '{db_name}'\n")
+        config_file.write("}\n")
+
     # نصب پکیج‌های مورد نیاز
     print("Installing required packages...")
     subprocess.run(["pip3", "install", "-r", "requirements.txt"])
@@ -39,7 +50,7 @@ def install():
 
     # نصب phpMyAdmin
     print("Installing phpMyAdmin...")
-    subprocess.run(["sudo", "apt-get", "install", "phpmyadmin"])
+    subprocess.run(["sudo", "apt-get", "install", "phpmyadmin", "-y"])
 
     # اجرای ربات
     print("Starting the bot...")
