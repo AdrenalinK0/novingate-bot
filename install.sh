@@ -62,7 +62,12 @@ setup_phpmyadmin() {
 setup_bot() {
     echo "Setting up the bot..."
     python3 create_tables.py || error "Failed to create database tables."
-    nohup python3 bot.py > bot.log 2>&1 & || error "Failed to start the bot."
+    
+    # اجرای ربات در پس‌زمینه و ذخیره خروجی در فایل log
+    nohup python3 bot.py > bot.log 2>&1 &
+    if [ $? -ne 0 ]; then
+        error "Failed to start the bot."
+    fi
 }
 
 # Main script
