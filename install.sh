@@ -15,7 +15,7 @@ error() {
 install_packages() {
     echo "Installing required packages..."
     sudo apt-get update || error "Failed to update package list."
-    sudo apt-get install -y python3 python3-pip python3-venv mysql-server mysql-client certbot phpmyadmin nginx || error "Failed to install required packages."
+    sudo apt-get install -y python3 python3-pip python3-venv mysql-server mysql-client certbot python3-certbot-nginx phpmyadmin nginx || error "Failed to install required packages."
 }
 
 # Function to setup MySQL
@@ -25,6 +25,37 @@ setup_mysql() {
     sudo mysql -e "CREATE USER IF NOT EXISTS '$db_user'@'localhost' IDENTIFIED BY '$db_pass';" || error "Failed to create user."
     sudo mysql -e "GRANT ALL PRIVILEGES ON $db_name.* TO '$db_user'@'localhost';" || error "Failed to grant privileges."
     sudo mysql -e "FLUSH PRIVILEGES;" || error "Failed to flush privileges."
+}
+
+# Function to setup Nginx configuration
+setup_nginx_config() {
+    echo "Setting up Nginx configuration..."
+    sudo cat > /etc/nginx/sites-available/$domain <<EOL
+server {
+    listen 80;
+    server_name $domain;
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+
+    location /phpmyadmin {
+        proxy_pass http://127.0.0.1:80;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+}
+EOL
+
+    sudo ln -sf /etc/nginx/sites-available/$domain /etc/nginx/sites-enabled/ || error "Failed to create Nginx symlink."
+    sudo nginx -t || error "Nginx configuration test failed."
+    sudo systemctl restart nginx || error "Failed to restart Nginx."
 }
 
 # Function to setup SSL
@@ -42,15 +73,6 @@ setup_python_env() {
     pip install -r requirements.txt || error "Failed to install Python packages."
 }
 
-# Function to setup Nginx
-setup_nginx() {
-    echo "Setting up Nginx..."
-    sudo cp nginx.conf /etc/nginx/sites-available/$domain || error "Failed to copy Nginx configuration."
-    sudo ln -sf /etc/nginx/sites-available/$domain /etc/nginx/sites-enabled/ || error "Failed to create Nginx symlink."
-    sudo nginx -t || error "Nginx configuration test failed."
-    sudo systemctl restart nginx || error "Failed to restart Nginx."
-}
-
 # Function to setup PHPMyAdmin
 setup_phpmyadmin() {
     echo "Setting up PHPMyAdmin..."
@@ -63,7 +85,7 @@ setup_bot() {
     echo "Setting up the bot..."
     python3 create_tables.py || error "Failed to create database tables."
     
-    # اجرای ربات در پس‌زمینه و ذخیره خروجی در فایل log
+    # Run the bot in the background and log output
     nohup python3 bot.py > bot.log 2>&1 &
     if [ $? -ne 0 ]; then
         error "Failed to start the bot."
@@ -82,20 +104,29 @@ read -p "Enter your database username: " db_user
 read -p "Enter your database password: " db_pass
 read -p "Enter your admin email: " admin_email
 
+# Export environment variables
+export DOMAIN=$domain
+export BOT_TOKEN=$bot_token
+export ADMIN_ID=$admin_id
+export DB_NAME=$db_name
+export DB_USER=$db_user
+export DB_PASS=$db_pass
+export ADMIN_EMAIL=$admin_email
+
 # Install required packages
 install_packages
 
 # Setup MySQL
 setup_mysql
 
+# Setup Nginx configuration
+setup_nginx_config
+
 # Setup SSL
 setup_ssl
 
 # Setup Python environment
 setup_python_env
-
-# Setup Nginx
-setup_nginx
 
 # Setup PHPMyAdmin
 setup_phpmyadmin

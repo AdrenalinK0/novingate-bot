@@ -3,7 +3,6 @@ from mysql.connector import Error
 
 def create_tables():
     try:
-        # اتصال به دیتابیس
         connection = mysql.connector.connect(
             host="localhost",
             user="your_db_user",
@@ -12,7 +11,6 @@ def create_tables():
         )
         cursor = connection.cursor()
 
-        # ایجاد جداول
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -33,7 +31,7 @@ def create_tables():
         print(f"Error: {e}")
 
     finally:
-        if 'connection' in locals() and connection.is_connected():
+        if connection.is_connected():
             cursor.close()
             connection.close()
 
