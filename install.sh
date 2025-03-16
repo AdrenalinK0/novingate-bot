@@ -89,15 +89,27 @@ sudo ln -s /etc/nginx/sites-available/${DOMAIN} /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl restart nginx
 
-# ارسال پیام به ادمین
-echo "ارسال پیام به ادمین..."
-curl -s -X POST "https://api.telegram.org/bot${TOKEN}/sendMessage" \
-    -d "chat_id=${ADMIN_ID}" \
-    -d "text=ربات با موفقیت نصب شد! 🎉\n\nنام دامنه: ${DOMAIN}\nphpMyAdmin: http://pma.${DOMAIN}\nتوکن ربات: ${TOKEN}"
+# تنظیم سرویس systemd برای ربات
+echo "تنظیم سرویس systemd برای ربات..."
+sudo bash -c "cat > /etc/systemd/system/novingate-bot.service <<EOF
+[Unit]
+Description=Novingate Telegram Bot
+After=network.target
 
-# اجرای خودکار ربات
-echo "اجرای خودکار ربات..."
-nohup python3 bot.py > logs/bot.log 2>&1 &
+[Service]
+User=root
+WorkingDirectory=$(pwd)
+ExecStart=/usr/bin/python3 $(pwd)/bot.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF"
+
+# فعال‌سازی و شروع سرویس
+sudo systemctl daemon-reload
+sudo systemctl start novingate-bot
+sudo systemctl enable novingate-bot
 
 # نمایش اطلاعات نصب
 echo "✅ نصب با موفقیت انجام شد!"
@@ -108,8 +120,8 @@ echo "🔑 توکن ربات: ${TOKEN}"
 echo "👤 آی‌دی ادمین: ${ADMIN_ID}"
 echo "📂 دایرکتوری لاگ‌ها: $(pwd)/logs/bot.log"
 echo "================================================"
-echo "برای مشاهده لاگ‌های ربات، از دستور زیر استفاده کنید:"
-echo "tail -f logs/bot.log"
+echo "برای مشاهده وضعیت سرویس ربات، از دستور زیر استفاده کنید:"
+echo "sudo systemctl status novingate-bot"
 echo "برای متوقف کردن ربات، از دستور زیر استفاده کنید:"
-echo "pkill -f bot.py"
+echo "sudo systemctl stop novingate-bot"
 echo "================================================"
