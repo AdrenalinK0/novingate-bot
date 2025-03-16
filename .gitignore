@@ -1,60 +1,35 @@
-# فایل‌های پایتون
-__pycache__/
-*.py[cod]
-*$py.class
-
-# محیط‌های مجازی
+# فایل‌های محیط مجازی پایتون
 venv/
-env/
-.venv/
 .env/
 
-# فایل‌های مخفی
-.DS_Store
-.idea/
-.vscode/
-
-# لاگ‌ها
-logs/
-*.log
-
-# فایل‌های تنظیمات محلی
-config.py
+# فایل‌های پیکربندی محلی
 *.env
 *.ini
+*.cfg
 
-# دیتابیس
+# فایل‌های لاگ
+*.log
+
+# فایل‌های موقت
+*.tmp
+*.temp
+
+# فایل‌های IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# فایل‌های کامپایل شده پایتون
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# فایل‌های دیتابیس
 *.db
 *.sqlite3
 
-# فایل‌های نصب
-dist/
-build/
-*.egg-info/
-
-# فایل‌های کش
-.cache/
-.pytest_cache/
-
-# فایل‌های سیستم
-*.swp
-*.swo
-*.bak
-*.tmp
-
-# فایل‌های SSL
-*.key
-*.pem
-*.crt
-
-# فایل‌های phpMyAdmin
-phpmyadmin/
-
-# فایل‌های تولید شده توسط کاربر
-uploads/
-downloads/
-
-# فایل‌های IDE
-*.iml
-*.project
-*.pydevproject
+# فایل‌های سیستم عامل
+.DS_Store
+Thumbs.db
