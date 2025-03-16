@@ -1,70 +1,18 @@
 import mysql.connector
-import config
-import logging
 
-logging.basicConfig(level=logging.INFO)
+# اطلاعات دیتابیس (این را از config یا .env دریافت کنید)
+db_config = {
+    "host": "localhost",
+    "user": "novingate_user",
+    "password": "your_password",
+    "database": "novingate_db"
+}
 
 # اتصال به دیتابیس
-try:
-    db = mysql.connector.connect(
-        host="localhost",
-        user=config.DB_USER,
-        password=config.DB_PASS,
-        database=config.DB_NAME
-    )
-    cursor = db.cursor()
-    logging.info("✅ اتصال به دیتابیس برقرار شد.")
-except mysql.connector.Error as err:
-    logging.error(f"❌ خطا در اتصال به دیتابیس: {err}")
-    exit()
+conn = mysql.connector.connect(**db_config)
+cursor = conn.cursor()
 
-# ایجاد جدول کاربران
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    telegram_id BIGINT UNIQUE NOT NULL,
-    username VARCHAR(255),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-""")
-
-# ایجاد جدول کیف پول
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS wallet (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id BIGINT NOT NULL,
-    balance INT DEFAULT 0,
-    FOREIGN KEY (user_id) REFERENCES users(telegram_id) ON DELETE CASCADE
-);
-""")
-
-# ایجاد جدول اکانت‌ها
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS accounts (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id BIGINT NOT NULL,
-    username VARCHAR(255),
-    password VARCHAR(255),
-    server_id INT NOT NULL,
-    expiration_date DATE,
-    FOREIGN KEY (user_id) REFERENCES users(telegram_id) ON DELETE CASCADE,
-    FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE
-);
-""")
-
-# ایجاد جدول تیکت‌های پشتیبانی
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS tickets (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id BIGINT NOT NULL,
-    message TEXT NOT NULL,
-    status ENUM('open', 'closed') DEFAULT 'open',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(telegram_id) ON DELETE CASCADE
-);
-""")
-
-# ایجاد جدول سرورهای iBang
+# ابتدا جدول servers ایجاد شود
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS servers (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -74,50 +22,30 @@ CREATE TABLE IF NOT EXISTS servers (
 );
 """)
 
-# ایجاد جدول درگاه‌های پرداخت
+# سپس سایر جداول ایجاد شوند
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS payments (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    method VARCHAR(50) NOT NULL,
-    details TEXT NOT NULL,
-    status ENUM('active', 'inactive') DEFAULT 'active'
-);
-""")
-
-# ایجاد جدول ادمین‌ها
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS admins (
+CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     telegram_id BIGINT UNIQUE NOT NULL,
-    access_level ENUM('full', 'support', 'finance') DEFAULT 'support'
+    username VARCHAR(255),
+    wallet_balance DECIMAL(10,2) DEFAULT 0.00
 );
 """)
 
-# ایجاد جدول پلن‌های فروش
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS plans (
+CREATE TABLE IF NOT EXISTS accounts (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    users_limit INT NOT NULL,
-    duration_days INT NOT NULL,
-    price INT NOT NULL
+    user_id INT NOT NULL,
+    server_id INT NOT NULL,
+    username VARCHAR(255) NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    expiry_date DATE NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE
 );
 """)
 
-# ایجاد جدول زیرمجموعه‌گیری
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS referrals (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id BIGINT NOT NULL,
-    referred_by BIGINT NOT NULL,
-    reward INT NOT NULL DEFAULT 0,
-    FOREIGN KEY (user_id) REFERENCES users(telegram_id) ON DELETE CASCADE,
-    FOREIGN KEY (referred_by) REFERENCES users(telegram_id) ON DELETE CASCADE
-);
-""")
-
-# ذخیره تغییرات و بستن اتصال
-db.commit()
+conn.commit()
 cursor.close()
-db.close()
-logging.info("✅ جداول دیتابیس با موفقیت ایجاد شدند.")
+conn.close()
+print("✅ دیتابیس و جداول با موفقیت ایجاد شدند.")
