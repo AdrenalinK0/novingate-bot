@@ -1,10 +1,9 @@
-from telegram import Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from config import TOKEN, MYSQL_CONFIG, ADMIN_ID
 from utils.db_utils import get_db_connection, save_user
 from utils.keyboard_utils import user_main_menu_keyboard, admin_main_menu_keyboard
 
-def start(update: Update, context: CallbackContext) -> None:
+def start(update, context):
     user_id = update.message.from_user.id
     if user_id == ADMIN_ID:
         update.message.reply_text(
@@ -17,7 +16,7 @@ def start(update: Update, context: CallbackContext) -> None:
             reply_markup=user_main_menu_keyboard()
         )
 
-def main() -> None:
+def main():
     updater = Updater(TOKEN)
     dispatcher = updater.dispatcher
 
