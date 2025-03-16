@@ -1,35 +1,44 @@
-# فایل‌های محیط مجازی پایتون
+# پوشه محیط مجازی پایتون (Virtual Environment)
 venv/
-.env/
-
-# فایل‌های پیکربندی محلی
-*.env
-*.ini
-*.cfg
-
-# فایل‌های لاگ
-*.log
-
-# فایل‌های موقت
-*.tmp
-*.temp
-
-# فایل‌های IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-
-# فایل‌های کامپایل شده پایتون
-__pycache__/
+env/
 *.pyc
+__pycache__/
 *.pyo
 *.pyd
 
-# فایل‌های دیتابیس
-*.db
-*.sqlite3
+# فایل‌های محیطی و تنظیمات خصوصی
+.env
+.env.local
+*.log
+logs/
+debug.log
 
-# فایل‌های سیستم عامل
+# فایل‌های کش و موقت
+*.sqlite3
+*.db
+*.swp
 .DS_Store
+*.bak
+*.tmp
+*.cache
+
+# فایل‌های وابستگی و نصب
+pip-log.txt
+pip-delete-this-directory.txt
+
+# تنظیمات و فایل‌های سیستم‌عامل
 Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# کلیدهای SSH و گواهی‌های SSL
+*.pem
+*.key
+*.crt
+certbot/
+
+# خروجی‌های مربوط به phpMyAdmin
+phpmyadmin/
+
+# فایل‌های مرتبط با systemd
+/systemd/*.service

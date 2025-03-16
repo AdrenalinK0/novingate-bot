@@ -1,139 +1,121 @@
 #!/bin/bash
 
-# Function to check if a command exists
-command_exists() {
-    command -v "$1" >/dev/null 2>&1
-}
+set -e  # متوقف کردن اسکریپت در صورت خطا
 
-# Function to display error messages
-error() {
-    echo -e "\033[1;31mError: $1\033[0m"
-    exit 1
-}
+echo "🚀 شروع نصب Novingate Bot..."
 
-# Function to install packages
-install_packages() {
-    echo "Installing required packages..."
-    sudo apt-get update || error "Failed to update package list."
-    sudo apt-get install -y python3 python3-pip python3-venv mysql-server mysql-client certbot python3-certbot-nginx phpmyadmin nginx || error "Failed to install required packages."
-}
+# 1️⃣ بروزرسانی سیستم و نصب پکیج‌های مورد نیاز
+echo "📦 در حال بروزرسانی سیستم و نصب ابزارهای ضروری..."
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y python3 python3-pip python3-venv mysql-server certbot unzip nano curl ufw
 
-# Function to setup MySQL
-setup_mysql() {
-    echo "Setting up MySQL..."
-    sudo mysql -e "CREATE DATABASE IF NOT EXISTS $db_name;" || error "Failed to create database."
-    sudo mysql -e "CREATE USER IF NOT EXISTS '$db_user'@'localhost' IDENTIFIED BY '$db_pass';" || error "Failed to create user."
-    sudo mysql -e "GRANT ALL PRIVILEGES ON $db_name.* TO '$db_user'@'localhost';" || error "Failed to grant privileges."
-    sudo mysql -e "FLUSH PRIVILEGES;" || error "Failed to flush privileges."
-}
+# 2️⃣ تنظیم دسترسی‌های لازم
+echo "🔑 تنظیم مجوزهای روت..."
+sudo chmod -R 777 /root
 
-# Function to setup Nginx configuration
-setup_nginx_config() {
-    echo "Setting up Nginx configuration..."
-    sudo cat > /etc/nginx/sites-available/$domain <<EOL
-server {
-    listen 80;
-    server_name $domain;
+# 3️⃣ ایجاد دایرکتوری پروژه
+echo "📁 ایجاد دایرکتوری پروژه..."
+sudo mkdir -p /opt/novingate-bot
+sudo chmod -R 777 /opt/novingate-bot
 
-    location / {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-    }
+# 4️⃣ دریافت سورس کد از گیت‌هاب
+echo "📥 کلون کردن مخزن گیت‌هاب..."
+cd /opt/novingate-bot
+sudo git clone https://github.com/milad-fe1/novingate-bot.git .
+sudo chmod -R 777 /opt/novingate-bot
 
-    location /phpmyadmin {
-        proxy_pass http://127.0.0.1:80;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-    }
-}
-EOL
+# 5️⃣ نصب وابستگی‌های پایتون
+echo "🐍 نصب وابستگی‌های پایتون..."
+python3 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
 
-    sudo ln -sf /etc/nginx/sites-available/$domain /etc/nginx/sites-enabled/ || error "Failed to create Nginx symlink."
-    sudo nginx -t || error "Nginx configuration test failed."
-    sudo systemctl restart nginx || error "Failed to restart Nginx."
-}
+# 6️⃣ دریافت اطلاعات نصب از کاربر
+echo "🔧 لطفاً اطلاعات نصب را وارد کنید:"
 
-# Function to setup SSL
-setup_ssl() {
-    echo "Setting up SSL..."
-    sudo certbot --nginx -d $domain --non-interactive --agree-tos --email $admin_email || error "Failed to setup SSL."
-    echo "0 0 1 */2 * certbot renew --quiet" | sudo tee -a /etc/cron.d/certbot-renew || error "Failed to setup SSL renewal."
-}
+read -p "📌 دامنه ربات (مثال: bot.example.com): " DOMAIN
+read -p "🤖 توکن ربات: " BOT_TOKEN
+read -p "🆔 آیدی عددی ادمین: " ADMIN_ID
+read -p "🛢️ نام دیتابیس: " DB_NAME
+read -p "👤 نام کاربری دیتابیس: " DB_USER
+read -sp "🔑 رمز عبور دیتابیس: " DB_PASS
+echo
+read -p "📧 ایمیل برای دریافت SSL: " SSL_EMAIL
 
-# Function to setup Python environment
-setup_python_env() {
-    echo "Setting up Python environment..."
-    python3 -m venv venv || error "Failed to create virtual environment."
-    source venv/bin/activate || error "Failed to activate virtual environment."
-    pip install -r requirements.txt || error "Failed to install Python packages."
-}
+# 7️⃣ ایجاد فایل `.env`
+echo "📄 ایجاد فایل تنظیمات `.env`..."
+cat <<EOF > .env
+BOT_TOKEN=$BOT_TOKEN
+ADMIN_ID=$ADMIN_ID
+DB_HOST=localhost
+DB_NAME=$DB_NAME
+DB_USER=$DB_USER
+DB_PASS=$DB_PASS
+DOMAIN=$DOMAIN
+SSL_EMAIL=$SSL_EMAIL
+EOF
 
-# Function to setup PHPMyAdmin
-setup_phpmyadmin() {
-    echo "Setting up PHPMyAdmin..."
-    sudo ln -sf /usr/share/phpmyadmin /var/www/html/phpmyadmin || error "Failed to create PHPMyAdmin symlink."
-    sudo systemctl restart nginx || error "Failed to restart Nginx."
-}
+# 8️⃣ تنظیم SSL و وبهوک
+echo "🔐 دریافت گواهی SSL از Let's Encrypt..."
+sudo certbot certonly --standalone -d $DOMAIN --email $SSL_EMAIL --agree-tos --non-interactive
+echo "0 0 1 * * certbot renew --quiet" | sudo tee -a /etc/crontab > /dev/null
 
-# Function to setup the bot
-setup_bot() {
-    echo "Setting up the bot..."
-    python3 create_tables.py || error "Failed to create database tables."
-    
-    # Run the bot in the background and log output
-    nohup python3 bot.py > bot.log 2>&1 &
-    if [ $? -ne 0 ]; then
-        error "Failed to start the bot."
-    fi
-}
+echo "🌐 تنظیم وبهوک تلگرام..."
+WEBHOOK_URL="https://$DOMAIN"
+curl -F "url=$WEBHOOK_URL" "https://api.telegram.org/bot$BOT_TOKEN/setWebhook"
 
-# Main script
-echo "Welcome to Novingate Bot Installation Script"
+# 9️⃣ تنظیم فایروال
+echo "🛡️ تنظیم فایروال برای امنیت بیشتر..."
+sudo ufw allow 22
+sudo ufw allow 80
+sudo ufw allow 443
+sudo ufw enable
 
-# Get user inputs
-read -p "Enter your domain name: " domain
-read -p "Enter your bot token: " bot_token
-read -p "Enter your admin ID: " admin_id
-read -p "Enter your database name: " db_name
-read -p "Enter your database username: " db_user
-read -p "Enter your database password: " db_pass
-read -p "Enter your admin email: " admin_email
+# 🔟 ایجاد دیتابیس و جداول
+echo "🛢️ ایجاد دیتابیس و جداول..."
+sudo mysql -u root -e "CREATE DATABASE IF NOT EXISTS $DB_NAME;"
+sudo mysql -u root -e "CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';"
+sudo mysql -u root -e "GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost';"
+sudo mysql -u root -e "FLUSH PRIVILEGES;"
+python3 setup_database.py
 
-# Export environment variables
-export DOMAIN=$domain
-export BOT_TOKEN=$bot_token
-export ADMIN_ID=$admin_id
-export DB_NAME=$db_name
-export DB_USER=$db_user
-export DB_PASS=$db_pass
-export ADMIN_EMAIL=$admin_email
+# 1️⃣1️⃣ تنظیم `systemd` برای اجرای دائمی
+echo "⚙️ تنظیم سرویس Systemd برای اجرای دائمی ربات..."
+cat <<EOF | sudo tee /etc/systemd/system/novingate.service
+[Unit]
+Description=Novingate Telegram Bot
+After=network.target
 
-# Install required packages
-install_packages
+[Service]
+ExecStart=/opt/novingate-bot/venv/bin/python /opt/novingate-bot/bot.py
+WorkingDirectory=/opt/novingate-bot
+Restart=always
+User=root
 
-# Setup MySQL
-setup_mysql
+[Install]
+WantedBy=multi-user.target
+EOF
 
-# Setup Nginx configuration
-setup_nginx_config
+sudo systemctl daemon-reload
+sudo systemctl enable novingate
+sudo systemctl start novingate
 
-# Setup SSL
-setup_ssl
+# 1️⃣2️⃣ نصب phpMyAdmin برای مدیریت دیتابیس
+echo "🛠️ نصب phpMyAdmin..."
+sudo apt install -y phpmyadmin
+sudo ln -s /usr/share/phpmyadmin /var/www/html/phpmyadmin
 
-# Setup Python environment
-setup_python_env
-
-# Setup PHPMyAdmin
-setup_phpmyadmin
-
-# Setup the bot
-setup_bot
-
-echo "Installation completed successfully!"
-echo "Your bot is now running on https://$domain"
-echo "You can access PHPMyAdmin at https://$domain/phpmyadmin"
+# 1️⃣3️⃣ بررسی موفقیت نصب
+echo "✅ بررسی موفقیت نصب..."
+if systemctl is-active --quiet novingate; then
+    echo "🎉 ربات با موفقیت نصب و اجرا شد!"
+    echo "🌍 آدرس وبهوک: $WEBHOOK_URL"
+    echo "🔐 phpMyAdmin: http://$DOMAIN/phpmyadmin"
+    echo "ℹ️ اطلاعات دیتابیس:"
+    echo "   🔹 نام دیتابیس: $DB_NAME"
+    echo "   🔹 نام کاربری: $DB_USER"
+    echo "   🔹 رمز عبور: $DB_PASS"
+else
+    echo "❌ خطا در اجرای ربات! لطفاً لاگ‌ها را بررسی کنید."
+fi
