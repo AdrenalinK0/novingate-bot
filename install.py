@@ -51,11 +51,21 @@ server {{
     os.symlink(config_path, enabled_path)
 
     # تست و ری‌لود Nginx
-    subprocess.run(["nginx", "-t"])
-    subprocess.run(["systemctl", "reload", "nginx"])
+    subprocess.run(["nginx", "-t"], check=True)
+    subprocess.run(["systemctl", "reload", "nginx"], check=True)
 
 def install():
     print("Starting NovinGate Bot Installation...")
+
+    # ایجاد محیط مجازی
+    print("Creating virtual environment...")
+    subprocess.run(["python3", "-m", "venv", "venv"])
+    activate_script = os.path.join(project_root, "venv", "bin", "activate")
+
+    # فعال‌سازی محیط مجازی
+    print("Activating virtual environment...")
+    activate_command = f"source {activate_script}"
+    subprocess.run(activate_command, shell=True, executable="/bin/bash")
 
     # دریافت اطلاعات از کاربر
     bot_token = input("Enter your Telegram Bot Token: ")
@@ -71,7 +81,7 @@ def install():
 
     # نصب پکیج‌های مورد نیاز
     print("Installing required packages...")
-    subprocess.run(["pip3", "install", "-r", "requirements.txt"])
+    subprocess.run([os.path.join(project_root, "venv", "bin", "pip"), "install", "-r", "requirements.txt"])
 
     # تنظیم Nginx
     print("Setting up Nginx...")
@@ -93,7 +103,7 @@ def install():
 
     # تنظیم وب‌هوک
     print("Setting webhook...")
-    subprocess.run(["python3", "bot.py", "--set-webhook", domain])
+    subprocess.run([os.path.join(project_root, "venv", "bin", "python"), "bot.py", "--set-webhook", domain])
 
     # نصب phpMyAdmin
     print("Installing phpMyAdmin...")
@@ -101,7 +111,7 @@ def install():
 
     # اجرای ربات
     print("Starting the bot...")
-    subprocess.run(["python3", "bot.py"])
+    subprocess.run([os.path.join(project_root, "venv", "bin", "python"), "bot.py"])
 
     print("Installation completed successfully!")
     print(f"Admin Panel: http://{domain}/admin")
