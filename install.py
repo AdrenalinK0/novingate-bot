@@ -17,7 +17,7 @@ def install():
 
     # نصب پکیج‌های مورد نیاز
     print("Installing required packages...")
-    subprocess.run(["pip", "install", "-r", "requirements.txt"])
+    subprocess.run(["pip3", "install", "-r", "requirements.txt"])
 
     # تنظیم SSL
     print("Setting up SSL...")
@@ -30,7 +30,7 @@ def install():
 
     # تنظیم وب‌هوک
     print("Setting webhook...")
-    subprocess.run(["python", "bot.py", "--set-webhook", domain])
+    subprocess.run(["python3", "bot.py", "--set-webhook", domain])
 
     # نصب phpMyAdmin
     print("Installing phpMyAdmin...")
@@ -38,7 +38,7 @@ def install():
 
     # اجرای ربات
     print("Starting the bot...")
-    subprocess.run(["python", "bot.py"])
+    subprocess.run(["python3", "bot.py"])
 
     print("Installation completed successfully!")
     print(f"Admin Panel: http://{domain}/admin")

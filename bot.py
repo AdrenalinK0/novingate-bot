@@ -1,9 +1,14 @@
+import sys
+import os
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, CallbackContext, CallbackQueryHandler
 from config import BOT_TOKEN, ADMIN_ID
 from modules.admin import admin_panel
 from modules.user import user_panel
 import logging
+
+# اضافه کردن مسیر پروژه به sys.path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # تنظیمات لاگ
 logging.basicConfig(filename='logs/bot.log', level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -14,18 +19,6 @@ def start(update: Update, context: CallbackContext):
         admin_panel(update, context)
     else:
         user_panel(update, context)
-
-def main():
-    updater = Updater(BOT_TOKEN)
-    dispatcher = updater.dispatcher
-
-    # دستورات
-    dispatcher.add_handler(CommandHandler("start", start))
-    dispatcher.add_handler(CallbackQueryHandler(button_handler))
-
-    # شروع ربات
-    updater.start_polling()
-    updater.idle()
 
 def button_handler(update: Update, context: CallbackContext):
     query = update.callback_query
@@ -69,6 +62,18 @@ def button_handler(update: Update, context: CallbackContext):
         query.edit_message_text(text="شما گزینه تعریف پلن فروش را انتخاب کردید.")
     elif data == "user_mode":
         query.edit_message_text(text="شما به حالت کاربری تغییر وضعیت دادید.")
+
+def main():
+    updater = Updater(BOT_TOKEN)
+    dispatcher = updater.dispatcher
+
+    # دستورات
+    dispatcher.add_handler(CommandHandler("start", start))
+    dispatcher.add_handler(CallbackQueryHandler(button_handler))
+
+    # شروع ربات
+    updater.start_polling()
+    updater.idle()
 
 if __name__ == "__main__":
     main()
