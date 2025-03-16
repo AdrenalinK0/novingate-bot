@@ -11,10 +11,6 @@ def get_input(prompt, default=None):
 print("🔹 لطفاً اطلاعات موردنیاز برای نصب را وارد کنید:")
 
 bot_domain = get_input("دامنه ربات خود را وارد کنید (بدون 'https://')").lower()
-if bot_domain.startswith("https://"):
-    print("⚠️ لطفاً فقط نام دامنه را بدون 'https://' وارد کنید.")
-    exit(1)
-
 bot_token = get_input("🔑 توکن ربات تلگرام خود را وارد کنید")
 admin_id = get_input("🆔 آی‌دی عددی ادمین ربات را وارد کنید")
 db_name = get_input("📂 نام دیتابیس", "novingate_db")
@@ -25,28 +21,32 @@ db_pass = get_input("🔑 رمز عبور دیتابیس")
 print("📦 در حال نصب پکیج‌های ضروری...")
 os.system("apt update && apt install -y python3 python3-pip mysql-server certbot")
 
-# دریافت گواهی SSL
-print("🔹 در حال دریافت گواهی SSL...")
-certbot_command = f"certbot certonly --standalone --preferred-challenges http -d {bot_domain} --non-interactive --agree-tos -m your-email@example.com"
-if os.system(certbot_command) != 0:
-    print("❌ خطا در دریافت گواهی SSL. لطفاً دامنه و پورت‌ها را بررسی کنید.")
-    exit(1)
+# بررسی وضعیت SSL و دریافت در صورت نیاز
+print("🔹 بررسی وضعیت گواهی SSL...")
+cert_check = os.system(f"certbot certificates | grep {bot_domain}")
 
-# تنظیم تمدید خودکار SSL
-os.system("echo '0 0,12 * * * root certbot renew --quiet' > /etc/cron.d/certbot-renew")
+if cert_check != 0:
+    print("📜 دریافت گواهی SSL...")
+    certbot_command = f"certbot certonly --standalone --preferred-challenges http -d {bot_domain} --non-interactive --agree-tos -m your-email@example.com"
+    if os.system(certbot_command) != 0:
+        print("❌ خطا در دریافت گواهی SSL. لطفاً دامنه را بررسی کنید.")
+        exit(1)
+    os.system("echo '0 0,12 * * * root certbot renew --quiet' > /etc/cron.d/certbot-renew")
+else:
+    print("✅ گواهی SSL معتبر است. نیازی به تمدید نیست.")
 
-# ایجاد دیتابیس و جداول
+# تنظیم دسترسی MySQL
+print("🛠 تنظیمات MySQL...")
 try:
-    print("🛠 در حال ایجاد دیتابیس و جداول...")
-    conn = mysql.connector.connect(user="root", password="")
+    conn = mysql.connector.connect(user="root", password="", auth_plugin='mysql_native_password')
     cursor = conn.cursor()
     cursor.execute(f"CREATE DATABASE IF NOT EXISTS {db_name}")
-    cursor.execute(f"CREATE USER '{db_user}'@'localhost' IDENTIFIED BY '{db_pass}'")
+    cursor.execute(f"CREATE USER IF NOT EXISTS '{db_user}'@'localhost' IDENTIFIED BY '{db_pass}'")
     cursor.execute(f"GRANT ALL PRIVILEGES ON {db_name}.* TO '{db_user}'@'localhost'")
     cursor.execute("FLUSH PRIVILEGES")
     conn.commit()
     conn.close()
-    print("✅ دیتابیس با موفقیت ایجاد شد!")
+    print("✅ دیتابیس و یوزر با موفقیت ایجاد شدند!")
 except mysql.connector.Error as err:
     print(f"❌ خطا در ایجاد دیتابیس: {err}")
     exit(1)
