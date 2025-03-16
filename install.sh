@@ -1,12 +1,13 @@
 #!/bin/bash
 
-# تنظیمات پیش‌فرض
-TOKEN="YOUR_TELEGRAM_BOT_TOKEN"
-MYSQL_USER="novingate_user"
-MYSQL_PASS="novingate_pass"
-MYSQL_DB="novingate_bot"
-DOMAIN="bot.example.com"
-ADMIN_ID="123456789"
+# دریافت اطلاعات از کاربر به‌صورت مرحله‌به‌مرحله
+echo "لطفاً اطلاعات مورد نیاز را وارد کنید:"
+read -p "توکن ربات خود را وارد کنید: " TOKEN
+read -p "نام کاربری MySQL را وارد کنید: " MYSQL_USER
+read -p "رمز عبور MySQL را وارد کنید: " MYSQL_PASS
+read -p "نام دیتابیس را وارد کنید: " MYSQL_DB
+read -p "نام دامنه خود را وارد کنید (مثال: bot.example.com): " DOMAIN
+read -p "آی‌دی عددی ادمین را وارد کنید: " ADMIN_ID
 
 # ایجاد دایرکتوری‌های مورد نیاز
 echo "بررسی و ایجاد دایرکتوری‌های مورد نیاز..."
@@ -15,7 +16,7 @@ mkdir -p database utils logs
 # نصب وابستگی‌های سیستم
 echo "نصب وابستگی‌های سیستم..."
 sudo apt-get update
-sudo apt-get install -y python3 python3-pip mysql-server nginx certbot python3-certbot-nginx
+sudo apt-get install -y python3 python3-pip mysql-server nginx
 
 # تنظیم MySQL
 echo "تنظیم MySQL..."
@@ -67,10 +68,6 @@ sudo ln -s /etc/nginx/sites-available/pma.${DOMAIN} /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl restart nginx
 
-# دریافت گواهی SSL برای phpMyAdmin
-echo "دریافت گواهی SSL برای phpMyAdmin..."
-sudo certbot --nginx -d pma.${DOMAIN} --non-interactive --agree-tos --email admin@${DOMAIN}
-
 # تنظیم Nginx برای ربات
 echo "تنظیم Nginx برای ربات..."
 sudo bash -c "cat > /etc/nginx/sites-available/${DOMAIN} <<EOF
@@ -92,19 +89,11 @@ sudo ln -s /etc/nginx/sites-available/${DOMAIN} /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl restart nginx
 
-# دریافت گواهی SSL برای ربات
-echo "دریافت گواهی SSL برای ربات..."
-sudo certbot --nginx -d ${DOMAIN} --non-interactive --agree-tos --email admin@${DOMAIN}
-
-# تنظیم تمدید خودکار گواهی SSL
-echo "تنظیم تمدید خودکار گواهی SSL..."
-(crontab -l 2>/dev/null; echo "0 0 * * 0 certbot renew --quiet") | crontab -
-
 # ارسال پیام به ادمین
 echo "ارسال پیام به ادمین..."
 curl -s -X POST "https://api.telegram.org/bot${TOKEN}/sendMessage" \
     -d "chat_id=${ADMIN_ID}" \
-    -d "text=ربات با موفقیت نصب شد! 🎉\n\nنام دامنه: ${DOMAIN}\nphpMyAdmin: https://pma.${DOMAIN}\nتوکن ربات: ${TOKEN}"
+    -d "text=ربات با موفقیت نصب شد! 🎉\n\nنام دامنه: ${DOMAIN}\nphpMyAdmin: http://pma.${DOMAIN}\nتوکن ربات: ${TOKEN}"
 
 # اجرای خودکار ربات
 echo "اجرای خودکار ربات..."
@@ -113,8 +102,8 @@ nohup python3 bot.py > logs/bot.log 2>&1 &
 # نمایش اطلاعات نصب
 echo "✅ نصب با موفقیت انجام شد!"
 echo "================================================"
-echo "🔗 لینک دسترسی به ربات: https://${DOMAIN}"
-echo "🔗 لینک دسترسی به phpMyAdmin: https://pma.${DOMAIN}"
+echo "🔗 لینک دسترسی به ربات: http://${DOMAIN}"
+echo "🔗 لینک دسترسی به phpMyAdmin: http://pma.${DOMAIN}"
 echo "🔑 توکن ربات: ${TOKEN}"
 echo "👤 آی‌دی ادمین: ${ADMIN_ID}"
 echo "📂 دایرکتوری لاگ‌ها: $(pwd)/logs/bot.log"
