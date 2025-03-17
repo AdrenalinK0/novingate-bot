@@ -1,21 +1,41 @@
 <?php
-require "../config.php"; // دریافت اطلاعات دیتابیس از فایل تنظیمات
+// تنظیم نمایش خطاها (فقط برای دیباگ، در محیط عملیاتی خاموش شود)
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
-try {
-    // اتصال به دیتابیس با PDO
-    $pdo = new PDO("mysql:host=" . $config['db_host'] . ";dbname=" . $config['db_name'] . ";charset=utf8", $config['db_user'], $config['db_pass']);
-    
-    // تنظیمات برای نمایش خطاهای PDO
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    die("❌ خطا در اتصال به دیتابیس: " . $e->getMessage());
+// بررسی وجود فایل تنظیمات
+$configFile = __DIR__ . '/config.php';
+if (!file_exists($configFile)) {
+    die("❌ فایل تنظیمات config.php یافت نشد!");
+}
+
+// دریافت اطلاعات دیتابیس از فایل تنظیمات
+require_once $configFile;
+
+// بررسی تعریف ثابت‌های دیتابیس
+if (!defined('DB_HOST') || !defined('DB_USER') || !defined('DB_PASS') || !defined('DB_NAME')) {
+    die("❌ ثابت‌های دیتابیس (DB_HOST, DB_USER, DB_PASS, DB_NAME) به درستی تعریف نشده‌اند!");
+}
+
+// ایجاد اتصال به دیتابیس
+$mysqli = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+
+// بررسی موفقیت اتصال
+if ($mysqli->connect_error) {
+    die("❌ اتصال به دیتابیس ناموفق: " . $mysqli->connect_error);
+} else {
+    echo "✅ اتصال به دیتابیس موفقیت‌آمیز بود!<br>";
+}
+
+// تنظیم کاراکتر ست به utf8mb4 برای پشتیبانی از زبان فارسی
+if (!$mysqli->set_charset("utf8mb4")) {
+    echo "❌ خطا در تنظیم کاراکتر ست: " . $mysqli->error . "<br>";
 }
 
 // 📌 بررسی وجود جدول‌ها و ایجاد آن‌ها در صورت نبودن
-function setupDatabase() {
-    global $pdo;
-
+function setupDatabase($mysqli) {
+    // لیست کوئری‌ها با تنظیم موتور ذخیره‌سازی به InnoDB
     $queries = [
         // جدول کاربران
         "CREATE TABLE IF NOT EXISTS users (
@@ -25,7 +45,7 @@ function setupDatabase() {
             referrer BIGINT DEFAULT NULL,
             banned TINYINT DEFAULT 0,
             joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )",
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
         // جدول پلن‌های فروش
         "CREATE TABLE IF NOT EXISTS plans (
@@ -34,7 +54,7 @@ function setupDatabase() {
             price INT NOT NULL,
             duration INT NOT NULL, -- روزهای اعتبار
             max_users INT NOT NULL
-        )",
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
         // جدول خریدهای کاربران
         "CREATE TABLE IF NOT EXISTS purchases (
@@ -45,7 +65,7 @@ function setupDatabase() {
             expires_at TIMESTAMP NOT NULL,
             FOREIGN KEY (chat_id) REFERENCES users(chat_id) ON DELETE CASCADE,
             FOREIGN KEY (plan_id) REFERENCES plans(id) ON DELETE CASCADE
-        )",
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
         // جدول تراکنش‌ها
         "CREATE TABLE IF NOT EXISTS transactions (
@@ -55,7 +75,7 @@ function setupDatabase() {
             type ENUM('deposit', 'withdrawal', 'purchase') NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (chat_id) REFERENCES users(chat_id) ON DELETE CASCADE
-        )",
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
         // جدول کدهای تخفیف
         "CREATE TABLE IF NOT EXISTS coupons (
@@ -63,7 +83,7 @@ function setupDatabase() {
             code VARCHAR(50) UNIQUE NOT NULL,
             discount INT NOT NULL,
             expires_at TIMESTAMP NOT NULL
-        )",
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
         // جدول سرورهای iBANG
         "CREATE TABLE IF NOT EXISTS servers (
@@ -71,7 +91,7 @@ function setupDatabase() {
             address VARCHAR(255) NOT NULL,
             username VARCHAR(100) NOT NULL,
             password VARCHAR(100) NOT NULL
-        )",
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
         // جدول تیکت‌های پشتیبانی
         "CREATE TABLE IF NOT EXISTS tickets (
@@ -81,15 +101,22 @@ function setupDatabase() {
             status ENUM('open', 'closed') DEFAULT 'open',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (chat_id) REFERENCES users(chat_id) ON DELETE CASCADE
-        )"
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
     ];
 
-    // اجرای کوئری‌های ایجاد جدول
-    foreach ($queries as $query) {
-        $pdo->exec($query);
+    foreach ($queries as $index => $query) {
+        if ($mysqli->query($query) === TRUE) {
+            echo "✅ جدول شماره " . ($index + 1) . " ایجاد شد یا از قبل وجود دارد.<br>";
+        } else {
+            echo "❌ خطا در ایجاد جدول شماره " . ($index + 1) . ": " . $mysqli->error . "<br>";
+        }
     }
 }
 
-// اجرای تابع ایجاد جدول‌ها
-setupDatabase();
+// اجرای تابع ایجاد جداول
+setupDatabase($mysqli);
+
+// بستن اتصال به دیتابیس
+$mysqli->close();
+echo "✅ عملیات با موفقیت به پایان رسید.<br>";
 ?>

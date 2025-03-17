@@ -6,8 +6,25 @@ if ($_SESSION['admin'] !== true) {
     die("⛔ شما دسترسی به این بخش ندارید.");
 }
 
-$conn = new mysqli($config['db_host'], $config['db_user'], $config['db_pass'], $config['db_name']);
+// بررسی تعریف ثابت‌های دیتابیس
+if (!defined('DB_HOST') || !defined('DB_USER') || !defined('DB_PASS') || !defined('DB_NAME')) {
+    die("❌ ثابت‌های دیتابیس (DB_HOST, DB_USER, DB_PASS, DB_NAME) به درستی تعریف نشده‌اند!");
+}
 
+// ایجاد اتصال به دیتابیس
+$mysqli = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+
+// بررسی موفقیت اتصال
+if ($mysqli->connect_error) {
+    die("❌ اتصال به دیتابیس ناموفق: " . $mysqli->connect_error);
+} else {
+    echo "✅ اتصال به دیتابیس موفقیت‌آمیز بود!<br>";
+}
+
+// تنظیم کاراکتر ست به utf8mb4 برای پشتیبانی از زبان فارسی
+if (!$mysqli->set_charset("utf8mb4")) {
+    echo "❌ خطا در تنظیم کاراکتر ست: " . $mysqli->error . "<br>";
+}
 // دریافت تنظیمات
 $settings = [];
 $result = $conn->query("SELECT * FROM settings");
