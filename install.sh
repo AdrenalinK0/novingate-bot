@@ -34,7 +34,7 @@ echo -e "${YELLOW}✅ اطلاعات دریافت شد. در حال نصب وا�
 # ** ۳) بروزرسانی و نصب نرم‌افزارهای مورد نیاز **
 echo -e "${CYAN}📦 نصب Apache, MySQL, PHP و وابستگی‌ها...${NC}"
 sudo apt update -y
-sudo apt install apache2 mysql-server php php-mbstring php-xml php-bcmath php-curl php-zip php-cli unzip certbot python3-certbot-apache composer curl git -y
+sudo apt install python-telegram-bot requests sqlite3 apache2 mysql-server php php-mbstring php-xml php-bcmath php-curl php-zip php-cli unzip certbot python3-certbot-apache composer curl git -y
 
 # ** ۴) فعال‌سازی و اجرای Apache **
 echo -e "${CYAN}🔄 فعال‌سازی Apache...${NC}"
